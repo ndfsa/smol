@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"compress/gzip"
 	"flag"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -33,45 +32,38 @@ func check(err error) {
 }
 
 func compress(file_name string) {
-	abs_path, err := filepath.Abs(file_name)
+	file, err := os.Open(file_name)
 	check(err)
-
-	file, err := os.Open(abs_path)
 	defer file.Close()
-	check(err)
 
-	data, err := ioutil.ReadAll(bufio.NewReader(file))
+	compressed_file, err := os.Create(file_name + ".gz")
 	check(err)
-
-	abs_path += ".gz"
-	compressed_file, err := os.Create(abs_path)
 	defer compressed_file.Close()
-	check(err)
 
 	compressed_writer := gzip.NewWriter(compressed_file)
-	compressed_writer.Write(data)
-	compressed_writer.Close()
+	defer compressed_writer.Close()
+	_, err = io.Copy(compressed_writer, file)
+	check(err)
+
+	compressed_writer.Flush()
 }
 
 func decompress(file_name string) {
-	abs_path, err := filepath.Abs(file_name)
+	file, err := os.Open(file_name)
 	check(err)
-
-	file, err := os.Open(abs_path)
 	defer file.Close()
-	check(err)
 
-	reader, err := gzip.NewReader(file)
+	decompressed_file, err := os.Create(strings.TrimSuffix(file_name, ".gz"))
 	check(err)
-	data, err := ioutil.ReadAll(reader)
-	check(err)
-
-	abs_path = strings.TrimSuffix(abs_path, ".gz")
-	decompressed_file, err := os.Create(abs_path)
 	defer decompressed_file.Close()
+
+	decompressed_reader, err := gzip.NewReader(file)
 	check(err)
+	defer decompressed_reader.Close()
 
 	writer := bufio.NewWriter(decompressed_file)
-	writer.Write(data)
+	_, err = io.Copy(decompressed_file, decompressed_reader)
+	check(err)
+
 	writer.Flush()
 }
