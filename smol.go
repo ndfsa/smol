@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	extract_mode := flag.Bool("ex", false, "set mode to encrypt")
+	extract_mode := flag.Bool("x", false, "set mode to encrypt")
 	flag.Parse()
 
 	args := flag.Args()
@@ -36,6 +36,13 @@ func compress(file_name string) {
 	check(err)
 	defer file.Close()
 
+	fileInfo, err := file.Stat()
+	check(err)
+
+	if fileInfo.IsDir() {
+		log.Fatal("directory compression not supported")
+	}
+
 	compressed_file, err := os.Create(file_name + ".gz")
 	check(err)
 	defer compressed_file.Close()
@@ -52,6 +59,13 @@ func decompress(file_name string) {
 	file, err := os.Open(file_name)
 	check(err)
 	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	check(err)
+
+	if fileInfo.IsDir() {
+		log.Fatal("directory compression not supported")
+	}
 
 	decompressed_file, err := os.Create(strings.TrimSuffix(file_name, ".gz"))
 	check(err)
